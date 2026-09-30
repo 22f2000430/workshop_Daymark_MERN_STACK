@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <title>Daymark — Study planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f4ef;
+      --white: #fffefa;
+      --ink: #22251f;
+      --muted: #777970;
+      --line: #e7e5dd;
+      --orange: #e7603d;
+      --orange-dark: #c84b2d;
+      --orange-wash: #fbe9e2;
+      --lime: #cee586;
+      --blue: #9dc9df;
+      --lilac: #d8c5e6;
+      --mono: "DM Mono", "Courier New", monospace;
+      --sans: "DM Sans", "Segoe UI", sans-serif;
+      --serif: "Fraunces", Georgia, serif;
+      --sidebar: 236px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 14px; }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #87aec1; outline-offset: 2px; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: var(--sidebar) minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 27px 17px 18px; background: #fbfaf6; border-right: 1px solid var(--line); z-index: 3; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 11px; text-decoration: none; color: var(--ink); }
+    .brand-mark { display: grid; width: 29px; height: 29px; place-items: center; background: var(--orange); border-radius: 9px; color: white; }
+    .brand-mark svg { width: 17px; height: 17px; }
+    .brand-name { font-weight: 700; font-size: 17px; letter-spacing: -.5px; }
+    .brand-name span { color: var(--orange); }
+    .sidebar-label { margin: 43px 11px 12px; color: #98998f; font: 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+    .nav-list { display: grid; gap: 4px; }
+    .nav-link { width: 100%; min-height: 41px; display: flex; align-items: center; gap: 12px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: #65675e; text-align: left; cursor: pointer; transition: background .18s, color .18s; }
+    .nav-link:hover { background: #f1f0e9; color: var(--ink); }
+    .nav-link.active { background: var(--orange-wash); color: var(--orange-dark); font-weight: 600; }
+    .nav-link svg { width: 18px; height: 18px; flex: 0 0 18px; stroke-width: 1.7; }
+    .nav-count { margin-left: auto; color: #9a9a91; font: 11px var(--mono); }
+    .sidebar-spacer { flex: 1; }
+    .week-note { position: relative; overflow: hidden; margin: 0 2px 15px; padding: 17px 15px; border: 1px solid #e5dfd0; border-radius: 8px; background: #f3f0e6; }
+    .week-note:after { position: absolute; width: 72px; height: 72px; right: -20px; bottom: -32px; border: 1px solid #dcd5c5; border-radius: 50%; content: ""; box-shadow: 0 0 0 8px #f3f0e6, 0 0 0 9px #dcd5c5, 0 0 0 19px #f3f0e6, 0 0 0 20px #dcd5c5; }
+    .week-note small { color: var(--muted); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .6px; }
+    .week-note p { max-width: 145px; margin: 9px 0 0; font: 17px/1.3 var(--serif); }
+    .profile { display: flex; align-items: center; gap: 10px; padding: 14px 8px 0; border-top: 1px solid var(--line); }
+    .avatar { display: grid; width: 33px; height: 33px; place-items: center; flex: 0 0 auto; border-radius: 50%; background: var(--lime); color: #3b4725; font: 12px var(--mono); }
+    .profile-name { font-size: 12px; font-weight: 600; }
+    .profile-caption { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .main-wrap { min-width: 0; }
+    .topbar { height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 39px; border-bottom: 1px solid var(--line); background: rgba(255,254,250,.57); }
+    .breadcrumb { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; }
+    .breadcrumb span:last-child { color: var(--ink); font-weight: 600; }
+    .breadcrumb svg { width: 14px; height: 14px; }
+    .top-actions { display: flex; align-items: center; gap: 11px; }
+    .today-label { color: var(--muted); font: 11px var(--mono); }
+    .icon-button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--white); cursor: pointer; }
+    .icon-button:hover { background: #f2f1eb; }
+    .icon-button svg { width: 16px; height: 16px; }
+    main { max-width: 1390px; margin: 0 auto; padding: 34px 39px 54px; }
+    .view-panel { animation: rise-in .32s ease both; }
+    @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+    .eyebrow { color: var(--muted); font: 10px var(--mono); letter-spacing: .9px; text-transform: uppercase; }
+    h1 { margin: 7px 0 0; font: 500 34px/1.1 var(--serif); letter-spacing: -.6px; }
+    .heading-subtitle { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+    .primary-button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border: 0; border-radius: 6px; background: var(--orange); color: white; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s, transform .15s; }
+    .primary-button:hover { background: var(--orange-dark); transform: translateY(-1px); }
+    .primary-button svg { width: 16px; height: 16px; }
+    .overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 13px; margin-bottom: 23px; }
+    .stat { position: relative; min-height: 91px; padding: 16px 17px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); }
+    .stat-top { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; }
+    .stat-icon { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 6px; background: #f2f1e9; color: #62665a; }
+    .stat-icon.orange { background: var(--orange-wash); color: var(--orange-dark); }
+    .stat-icon.blue { background: #e8f1f5; color: #527789; }
+    .stat-icon svg { width: 14px; height: 14px; }
+    .stat-value { margin-top: 7px; font: 500 24px/1 var(--serif); }
+    .stat-value small { color: var(--muted); font: 11px var(--sans); }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(280px,.85fr); align-items: start; gap: 19px; }
+    .section-panel { min-width: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--white); }
+    .section-head { min-height: 57px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 17px; border-bottom: 1px solid var(--line); }
+    .section-title { margin: 0; font-size: 13px; font-weight: 600; }
+    .section-kicker { color: var(--muted); font: 10px var(--mono); }
+    .text-button { padding: 5px 0; border: 0; background: transparent; color: var(--orange-dark); font-size: 11px; font-weight: 600; cursor: pointer; }
+    .task-list { padding: 0 17px; }
+    .task-row { min-height: 72px; display: grid; grid-template-columns: 19px minmax(0,1fr) auto; align-items: center; gap: 12px; border-bottom: 1px solid #eeede7; }
+    .task-row:last-child { border-bottom: 0; }
+    .task-check { width: 17px; height: 17px; margin: 0; appearance: none; border: 1.4px solid #c7c7bd; border-radius: 50%; background: var(--white); cursor: pointer; transition: background .15s, border .15s; }
+    .task-check:hover { border-color: var(--orange); }
+    .task-check:checked { display: grid; place-content: center; border-color: var(--orange); background: var(--orange); }
+    .task-check:checked:after { width: 8px; height: 4px; border: 1.5px solid white; border-top: 0; border-right: 0; content: ""; transform: rotate(-45deg) translate(0, -1px); }
+    .task-copy { min-width: 0; }
+    .task-title { overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+    .task-row.done .task-title { color: #999a91; text-decoration: line-through; }
+    .task-meta { display: flex; align-items: center; gap: 7px; margin-top: 5px; color: var(--muted); font-size: 10px; }
+    .subject-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: var(--subject-color, var(--blue)); }
+    .task-time { color: #85867e; font: 10px var(--mono); white-space: nowrap; }
+    .empty-state { padding: 28px 12px; color: var(--muted); font-size: 12px; text-align: center; }
+    .side-stack { display: grid; gap: 15px; }
+    .focus-card { overflow: hidden; border: 1px solid #423e36; border-radius: 7px; background: #232722; color: white; }
+    .focus-photo { min-height: 116px; display: flex; align-items: flex-end; padding: 15px 17px 12px; background: linear-gradient(0deg,rgba(22,25,21,.84),rgba(22,25,21,.04) 88%), url("https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=900&q=80") center 47%/cover, #48483e; }
+    .focus-photo .eyebrow { color: #e4dfd2; }
+    .focus-photo h2 { margin: 5px 0 0; font: 500 21px var(--serif); }
+    .timer-body { padding: 15px 17px 16px; }
+    .timer-display { display: flex; align-items: baseline; gap: 7px; }
+    .timer-time { font: 500 38px/.95 var(--mono); letter-spacing: -1.3px; font-variant-numeric: tabular-nums; }
+    .timer-caption { color: #b6b9ae; font-size: 10px; }
+    .timer-controls { display: flex; align-items: center; gap: 7px; margin-top: 16px; }
+    .timer-primary { min-width: 88px; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 0; border-radius: 5px; background: var(--lime); color: #313b20; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .timer-primary svg { width: 13px; height: 13px; }
+    .timer-reset { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #4a4e47; border-radius: 5px; background: transparent; color: #e9e9e2; cursor: pointer; }
+    .timer-reset:hover { background: #363a34; }
+    .timer-reset svg { width: 14px; height: 14px; }
+    .duration-options { display: flex; gap: 4px; margin-left: auto; }
+    .duration-option { min-width: 35px; height: 27px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #b6b9ae; font: 10px var(--mono); cursor: pointer; }
+    .duration-option.active { border-color: #61665b; color: white; }
+    .subjects-panel .section-head { min-height: 49px; }
+    .subject-list { padding: 1px 17px 5px; }
+    .subject-row { padding: 12px 0 10px; border-bottom: 1px solid #eeede7; }
+    .subject-row:last-child { border-bottom: 0; }
+    .subject-row-top { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; }
+    .subject-name { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+    .subject-hours { color: var(--muted); font: 10px var(--mono); white-space: nowrap; }
+    .progress-track { overflow: hidden; height: 4px; margin-top: 8px; border-radius: 4px; background: #eeede7; }
+    .progress-fill { height: 100%; border-radius: inherit; background: var(--subject-color, var(--blue)); transition: width .3s; }
+    .week-switcher { display: flex; align-items: center; gap: 8px; }
+    .week-label { min-width: 145px; text-align: center; font-size: 12px; font-weight: 600; }
+    .week-arrow { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; background: var(--white); cursor: pointer; }
+    .week-arrow svg { width: 14px; height: 14px; }
+    .week-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 9px; }
+    .day-column { min-height: 205px; padding: 11px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); cursor: pointer; transition: border .15s, transform .15s; }
+    .day-column:hover { border-color: #c9c5b8; transform: translateY(-2px); }
+    .day-column.is-today { border-color: var(--orange); box-shadow: inset 0 2px var(--orange); }
+    .day-header { padding-bottom: 11px; border-bottom: 1px solid #eeede7; }
+    .day-name { color: var(--muted); font: 9px var(--mono); text-transform: uppercase; }
+    .day-number { margin-top: 5px; font: 500 19px var(--serif); }
+    .day-column.is-today .day-number { color: var(--orange-dark); }
+    .week-task { margin-top: 9px; padding: 7px 6px; border-left: 2px solid var(--subject-color, var(--blue)); border-radius: 2px; background: #f5f4ef; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
+    .week-task.done { color: #999a91; text-decoration: line-through; }
+    .week-add { margin-top: 10px; border: 0; background: transparent; color: #9b9c93; font: 10px var(--mono); cursor: pointer; }
+    .week-add:hover { color: var(--orange-dark); }
+    .subject-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+    .subject-card { padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); }
+    .subject-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .subject-card-title { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
+    .subject-card-title .subject-dot { width: 9px; height: 9px; flex-basis: 9px; }
+    .subject-card-hours { color: var(--muted); font: 10px var(--mono); }
+    .subject-card-meta { display: flex; justify-content: space-between; margin-top: 17px; color: var(--muted); font-size: 10px; }
+    .subject-card .progress-track { height: 5px; margin-top: 8px; }
+    .subject-card-next { margin-top: 15px; padding-top: 12px; border-top: 1px solid #eeede7; color: var(--muted); font-size: 10px; }
+    .subject-card-next strong { color: var(--ink); font-weight: 500; }
+    .insights-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+    .insight-stat { padding: 17px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); }
+    .insight-stat .eyebrow { font-size: 9px; }
+    .insight-stat strong { display: block; margin-top: 8px; font: 500 30px var(--serif); }
+    .chart-panel { padding: 17px 20px 19px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); }
+    .chart-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .chart-heading h2 { margin: 0; font-size: 13px; }
+    .chart-legend { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
+    .chart-legend .subject-dot { background: var(--orange); }
+    .chart { height: 190px; display: flex; align-items: stretch; gap: 11px; margin-top: 16px; padding: 0 5px; border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to bottom,transparent 0,transparent 46px,#eeede7 47px,#eeede7 48px); }
+    .chart-day { display: flex; flex: 1; min-width: 0; flex-direction: column; justify-content: flex-end; align-items: center; gap: 7px; }
+    .chart-bar-wrap { width: 100%; height: 155px; display: flex; justify-content: center; align-items: flex-end; }
+    .chart-bar { width: min(27px,72%); min-height: 2px; border-radius: 4px 4px 0 0; background: var(--orange); transition: height .3s; }
+    .chart-day.today .chart-bar { background: #22251f; }
+    .chart-day-label { height: 17px; color: var(--muted); font: 9px var(--mono); }
+    dialog { width: min(430px,calc(100% - 30px)); padding: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--white); color: var(--ink); box-shadow: 0 22px 70px #27251b33; }
+    dialog::backdrop { background: #22251f75; backdrop-filter: blur(2px); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font: 500 21px var(--serif); }
+    .dialog-close { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 5px; background: transparent; color: var(--muted); cursor: pointer; }
+    .dialog-close:hover { background: #f1f0e9; }
+    .dialog-close svg { width: 16px; height: 16px; }
+    .task-form { display: grid; gap: 14px; padding: 19px 20px 20px; }
+    .field label { display: block; margin-bottom: 6px; color: #65675e; font-size: 11px; font-weight: 500; }
+    .field input, .field select { width: 100%; height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: #fffefa; color: var(--ink); font-size: 12px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-submit { width: 100%; margin-top: 2px; }
+    .toast { position: fixed; right: 22px; bottom: 22px; z-index: 5; padding: 11px 15px; border: 1px solid #d9dfca; border-radius: 6px; background: #f4f8eb; color: #3d4a2c; font-size: 12px; box-shadow: 0 8px 30px #22251f17; animation: rise-in .2s ease both; }
+    .mobile-brand { display: none; }
+    @media (min-width: 1450px) { main { padding-top: 41px; } }
+    @media (max-width: 1120px) {
+      :root { --sidebar: 205px; }
+      .topbar { padding: 0 27px; }
+      main { padding: 29px 27px 44px; }
+      .dashboard-grid { grid-template-columns: minmax(0,1.25fr) minmax(255px,.85fr); gap: 13px; }
+      .week-grid { gap: 5px; }
+      .day-column { padding: 9px 6px; }
+    }
+    @media (max-width: 860px) {
+      :root { --sidebar: 66px; }
+      .sidebar { align-items: center; padding: 20px 8px 14px; }
+      .brand { padding: 0; }
+      .brand-name, .sidebar-label, .nav-link span, .nav-count, .week-note, .profile-copy { display: none; }
+      .nav-list { width: 100%; margin-top: 37px; }
+      .nav-link { justify-content: center; padding: 0; }
+      .nav-link svg { width: 19px; height: 19px; }
+      .profile { width: 100%; justify-content: center; padding: 13px 0 0; }
+      .topbar { height: 58px; padding: 0 21px; }
+      main { padding: 26px 21px 40px; }
+      .dashboard-grid { grid-template-columns: minmax(0,1fr); }
+      .side-stack { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+      .week-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      .day-column:nth-child(n+5) { display: none; }
+    }
+    @media (max-width: 560px) {
+      .app-shell { display: block; padding-bottom: 61px; }
+      .sidebar { position: fixed; top: auto; right: 0; bottom: 0; left: 0; width: 100%; height: 61px; flex-direction: row; justify-content: center; padding: 6px 10px; border-top: 1px solid var(--line); border-right: 0; background: #fbfaf6; }
+      .brand, .sidebar-spacer, .profile { display: none; }
+      .nav-list { width: min(100%,430px); display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; margin: 0; }
+      .nav-link { min-height: 45px; flex-direction: column; justify-content: center; gap: 2px; border-radius: 5px; }
+      .nav-link span { display: block; color: inherit; font-size: 9px; }
+      .nav-link svg { width: 17px; height: 17px; flex-basis: 17px; }
+      .topbar { height: 51px; padding: 0 17px; }
+      .breadcrumb { gap: 6px; font-size: 11px; }
+      .today-label { font-size: 9px; }
+      .top-actions { gap: 7px; }
+      .icon-button { width: 30px; height: 30px; }
+      main { padding: 24px 16px 27px; }
+      .page-heading { align-items: center; margin-bottom: 20px; }
+      h1 { font-size: 29px; }
+      .heading-subtitle { max-width: 220px; font-size: 11px; }
+      .page-heading .primary-button { width: 37px; min-width: 37px; height: 37px; padding: 0; overflow: hidden; font-size: 0; }
+      .page-heading .primary-button svg { width: 18px; height: 18px; flex: 0 0 18px; }
+      .overview-grid { gap: 7px; margin-bottom: 14px; }
+      .stat { min-height: 79px; padding: 11px 9px; }
+      .stat-top { gap: 3px; font-size: 9px; }
+      .stat-icon { width: 21px; height: 21px; }
+      .stat-value { font-size: 21px; }
+      .section-head { padding: 0 12px; }
+      .task-list { padding: 0 12px; }
+      .task-row { min-height: 67px; grid-template-columns: 17px minmax(0,1fr) auto; gap: 9px; }
+      .task-title { font-size: 11px; }
+      .task-meta { gap: 5px; font-size: 9px; }
+      .task-time { font-size: 9px; }
+      .side-stack { grid-template-columns: minmax(0,1fr); }
+      .focus-photo { min-height: 101px; }
+      .subjects-panel .section-head { min-height: 48px; }
+      .week-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+      .day-column { min-height: 132px; padding: 9px; }
+      .day-column:nth-child(n+5) { display: block; }
+      .day-column:nth-child(n+6) { display: none; }
+      .week-label { min-width: 122px; font-size: 10px; }
+      .week-switcher { gap: 4px; }
+      .week-grid .day-column { min-height: 175px; }
+      .subject-cards { grid-template-columns: minmax(0,1fr); gap: 8px; }
+      .insights-grid { gap: 7px; }
+      .insight-stat { padding: 12px 9px; }
+      .insight-stat .eyebrow { font-size: 8px; }
+      .insight-stat strong { font-size: 25px; }
+      .chart-panel { padding: 14px 11px; }
+      .chart { gap: 5px; }
+      .chart-bar { width: min(21px,75%); }
+      .field-row { grid-template-columns: 1fr; gap: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#today" aria-label="Daymark home">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16.5 9 11l3 3 7-8"/><path d="M14 6h5v5"/><path d="M4 20h16"/></svg></span>
+        <span class="brand-name">daymark<span>.</span></span>
+      </a>
+      <div class="sidebar-label">Workspace</div>
+      <nav class="nav-list" aria-label="Planner views">
+        <button class="nav-link active" type="button" data-view="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 5 2 2 4-4"/></svg><span>Today</span><span class="nav-count" id="today-count"></span></button>
+        <button class="nav-link" type="button" data-view="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"/></svg><span>Week</span></button>
+        <button class="nav-link" type="button" data-view="subjects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg><span>Subjects</span></button>
+        <button class="nav-link" type="button" data-view="insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m8 14 4-4 4 3 5-7"/></svg><span>Insights</span></button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="week-note"><small>A little reminder</small><p>Small steps still move you forward.</p></div>
+      <div class="profile"><div class="avatar">A</div><div class="profile-copy"><div class="profile-name">Alex Morgan</div><div class="profile-caption">Student account</div></div></div>
+    </aside>
+    <div class="main-wrap">
+      <header class="topbar">
+        <div class="breadcrumb"><span>Workspace</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 18 6-6-6-6"/></svg><span id="breadcrumb-current">Today</span></div>
+        <div class="top-actions"><span class="today-label" id="top-date"></span><button class="icon-button" id="today-button" type="button" title="Go to today" aria-label="Go to today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4m8-4v4M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="m9 16 2 2 4-4"/></svg></button></div>
+      </header>
+      <main id="main-content"></main>
+    </div>
+  </div>
+  <dialog id="task-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-head"><h2 id="dialog-title">Add to your plan</h2><button class="dialog-close" type="button" aria-label="Close dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m18 6-12 12M6 6l12 12"/></svg></button></div>
+    <form class="task-form" id="task-form">
+      <div class="field"><label for="task-title-input">What are you working on?</label><input id="task-title-input" name="title" type="text" placeholder="e.g. Review lecture notes" maxlength="90" required></div>
+      <div class="field-row"><div class="field"><label for="task-subject-input">Subject</label><select id="task-subject-input" name="subject" required></select></div><div class="field"><label for="task-type-input">Task type</label><select id="task-type-input" name="type"><option>Study session</option><option>Assignment</option><option>Reading</option><option>Revision</option><option>Practice</option></select></div></div>
+      <div class="field-row"><div class="field"><label for="task-date-input">Date</label><input id="task-date-input" name="date" type="date" required></div><div class="field"><label for="task-minutes-input">Time estimate</label><select id="task-minutes-input" name="minutes"><option value="25">25 minutes</option><option value="45">45 minutes</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option></select></div></div>
+      <button class="primary-button form-submit" type="submit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add task</button>
+    </form>
+  </dialog>
+  <script>
+    const icons = {
+      check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>',
+      clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+      book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Z"/><path d="M4 17a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/></svg>',
+      play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.8c0-.8.9-1.3 1.6-.9l9.2 6.2a1.1 1.1 0 0 1 0 1.8l-9.2 6.2c-.7.4-1.6-.1-1.6-.9V5.8Z"/></svg>',
+      pause: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h3.5v14H7zm6.5 0H17v14h-3.5z"/></svg>',
+      reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/></svg>'
+    };
+    const palette = ['#e7603d','#9dc9df','#b5cd73','#c4a9d9','#e6b762','#74b8a2'];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const shiftDate = (date, days) => { const next = new Date(date); next.setDate(next.getDate()+days); return next; };
+    const todayKey = dateKey(today);
+    const defaultSubjects = [
+      {id:'math',name:'Mathematics',color:'#e7603d',goal:5},
+      {id:'physics',name:'Physics',color:'#9dc9df',goal:4},
+      {id:'history',name:'Modern History',color:'#b5cd73',goal:3},
+      {id:'writing',name:'Academic Writing',color:'#c4a9d9',goal:3}
+    ];
+    const seedTasks = [
+      {id:'seed-1',title:'Review differential equations',subject:'math',type:'Revision',date:todayKey,minutes:45,done:false,time:'09:00'},
+      {id:'seed-2',title:'Read chapter 6: wave motion',subject:'physics',type:'Reading',date:todayKey,minutes:60,done:false,time:'10:30'},
+      {id:'seed-3',title:'Outline essay on urban change',subject:'writing',type:'Assignment',date:todayKey,minutes:45,done:false,time:'13:00'},
+      {id:'seed-4',title:'Flashcards: key dates, 1914–1945',subject:'history',type:'Practice',date:todayKey,minutes:25,done:true,time:'08:00'},
+      {id:'seed-5',title:'Problem set 4: questions 1–5',subject:'math',type:'Assignment',date:dateKey(shiftDate(today,1)),minutes:60,done:false,time:'10:00'},
+      {id:'seed-6',title:'Lab report: results and discussion',subject:'physics',type:'Assignment',date:dateKey(shiftDate(today,1)),minutes:90,done:false,time:'14:00'},
+      {id:'seed-7',title:'Primary sources: week 3',subject:'history',type:'Reading',date:dateKey(shiftDate(today,2)),minutes:45,done:false,time:'11:00'},
+      {id:'seed-8',title:'Draft introduction and thesis',subject:'writing',type:'Writing',date:dateKey(shiftDate(today,3)),minutes:60,done:false,time:'09:30'},
+      {id:'seed-9',title:'Electromagnetism practice set',subject:'physics',type:'Practice',date:dateKey(shiftDate(today,4)),minutes:45,done:false,time:'13:00'},
+      {id:'seed-10',title:'Revise integration techniques',subject:'math',type:'Revision',date:dateKey(shiftDate(today,5)),minutes:60,done:false,time:'10:30'},
+      {id:'seed-11',title:'History essay: first draft',subject:'history',type:'Assignment',date:dateKey(shiftDate(today,6)),minutes:90,done:false,time:'12:00'}
+    ];
+    function load(key, fallback) {
+      try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; }
+      catch { return fallback; }
+    }
+    let tasks = load('daymark-tasks', seedTasks);
+    let subjects = load('daymark-subjects', defaultSubjects);
+    let completedSessions = load('daymark-sessions', []);
+    let activeView = 'today';
+    let weekOffset = 0;
+    let timerDuration = Number(load('daymark-timer-duration',25)) || 25;
+    let timerRemaining = timerDuration * 60;
+    let timerInterval = null;
+    let toastTimeout = null;
+    const main = document.querySelector('#main-content');
+    const dialog = document.querySelector('#task-dialog');
+    const form = document.querySelector('#task-form');
+    const subjectFor = id => subjects.find(subject => subject.id === id) || {name:'General',color:'#b6b6aa',goal:0};
+    const save = () => {
+      localStorage.setItem('daymark-tasks',JSON.stringify(tasks));
+      localStorage.setItem('daymark-subjects',JSON.stringify(subjects));
+      localStorage.setItem('daymark-sessions',JSON.stringify(completedSessions));
+    };
+    const formatDate = (date, options={weekday:'long',month:'long',day:'numeric'}) => new Intl.DateTimeFormat('en',options).format(date);
+    const prettyMinutes = minutes => minutes >= 60 ? `${Math.floor(minutes/60)}h${minutes%60 ? ` ${minutes%60}m` : ''}` : `${minutes}m`;
+    function showToast(message) {
+      document.querySelector('.toast')?.remove();
+      const toast = document.createElement('div'); toast.className = 'toast'; toast.setAttribute('role','status'); toast.textContent = message;
+      document.body.append(toast); clearTimeout(toastTimeout); toastTimeout = setTimeout(()=>toast.remove(),2300);
+    }
+    function taskMarkup(task) {
+      const subject = subjectFor(task.subject);
+      return `<label class="task-row ${task.done?'done':''}" style="--subject-color:${subject.color}"><input class="task-check" type="checkbox" data-task-id="${task.id}" ${task.done?'checked':''} aria-label="Mark ${escapeHTML(task.title)} ${task.done?'incomplete':'complete'}"><span class="task-copy"><span class="task-title">${escapeHTML(task.title)}</span><span class="task-meta"><span class="subject-dot"></span>${escapeHTML(subject.name)}<span>·</span>${escapeHTML(task.type)}</span></span><span class="task-time">${task.time || prettyMinutes(task.minutes)}</span></label>`;
+    }
+    function escapeHTML(value) { return String(value).replace(/[&<>"']/g, char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])); }
+    function completedMinutes() { return completedSessions.reduce((sum,session)=>sum+Number(session.minutes||0),0); }
+    function todayTasks() { return tasks.filter(task=>task.date===todayKey); }
+    function subjectSummary(subject) {
+      const related=tasks.filter(task=>task.subject===subject.id);
+      const completed=related.filter(task=>task.done).length;
+      const planned=related.reduce((sum,task)=>sum+Number(task.minutes||0),0);
+      const spent=completedSessions.filter(session=>session.subject===subject.id).reduce((sum,session)=>sum+Number(session.minutes||0),0);
+      return {related,completed,planned,spent};
+    }
+    function renderToday() {
+      const list=todayTasks();
+      const complete=list.filter(task=>task.done).length;
+      const planned=list.reduce((sum,task)=>sum+Number(task.minutes||0),0);
+      const completeHours=completedMinutes();
+      main.innerHTML=`<section class="view-panel">
+        <div class="page-heading"><div><div class="eyebrow">${escapeHTML(formatDate(today,{weekday:'long',month:'long',day:'numeric'}))}</div><h1>Good morning, Alex.</h1><p class="heading-subtitle">A clear plan makes room for your best work.</p></div><button class="primary-button add-task-button" type="button">${icons.check}<span>Add a task</span></button></div>
+        <div class="overview-grid"><div class="stat"><div class="stat-top"><span>Today's progress</span><span class="stat-icon orange">${icons.check}</span></div><div class="stat-value">${complete}<small> / ${list.length} tasks</small></div></div><div class="stat"><div class="stat-top"><span>Time planned today</span><span class="stat-icon blue">${icons.clock}</span></div><div class="stat-value">${prettyMinutes(planned)}</div></div><div class="stat"><div class="stat-top"><span>Focus time logged</span><span class="stat-icon">${icons.book}</span></div><div class="stat-value">${prettyMinutes(completeHours)}</div></div></div>
+        <div class="dashboard-grid"><section class="section-panel"><div class="section-head"><h2 class="section-title">Today's tasks</h2><span class="section-kicker">${String(complete).padStart(2,'0')} / ${String(list.length).padStart(2,'0')} DONE</span></div><div class="task-list">${list.length?list.map(taskMarkup).join(''):'<div class="empty-state">Nothing planned yet. Add a task to get started.</div>'}</div></section>
+        <div class="side-stack"><section class="focus-card"><div class="focus-photo"><div><div class="eyebrow">A little focus goes a long way</div><h2>Focus session</h2></div></div><div class="timer-body"><div class="timer-display"><span class="timer-time" id="timer-display">${String(timerDuration).padStart(2,'0')}:00</span><span class="timer-caption" id="timer-caption">minutes of focus</span></div><div class="timer-controls"><button class="timer-primary" id="timer-toggle" type="button">${icons.play}<span>Start focus</span></button><button class="timer-reset" id="timer-reset" type="button" title="Reset timer" aria-label="Reset timer">${icons.reset}</button><div class="duration-options" aria-label="Focus duration"><button class="duration-option ${timerDuration===25?'active':''}" data-duration="25" type="button">25m</button><button class="duration-option ${timerDuration===45?'active':''}" data-duration="45" type="button">45m</button><button class="duration-option ${timerDuration===60?'active':''}" data-duration="60" type="button">60m</button></div></div></div></section>
+        <section class="section-panel subjects-panel"><div class="section-head"><h2 class="section-title">Your subjects</h2><button class="text-button" type="button" data-go-view="subjects">View all</button></div><div class="subject-list">${subjects.map(subject=>{const summary=subjectSummary(subject);const percent=subject.goal?Math.min(100,Math.round(summary.spent/(subject.goal*60)*100)):0;return `<div class="subject-row"><div class="subject-row-top"><span class="subject-name" style="--subject-color:${subject.color}"><span class="subject-dot"></span>${escapeHTML(subject.name)}</span><span class="subject-hours">${prettyMinutes(summary.spent)} / ${subject.goal}h</span></div><div class="progress-track"><div class="progress-fill" style="--subject-color:${subject.color};width:${percent}%"></div></div></div>`}).join('')}</div></section></div></div>
+      </section>`;
+      bindTaskChecks(); bindAddButtons(); bindViewButtons(); bindTimer();
+    }
+    function startOfWeek(date) { const start=new Date(date); start.setDate(start.getDate()-((start.getDay()+6)%7)); return start; }
+    function renderWeek() {
+      const start=shiftDate(startOfWeek(today),weekOffset*7); const end=shiftDate(start,6);
+      const weekLabel=`${new Intl.DateTimeFormat('en',{month:'short',day:'numeric'}).format(start)} – ${new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'}).format(end)}`;
+      const days=Array.from({length:7},(_,index)=>shiftDate(start,index));
+      main.innerHTML=`<section class="view-panel"><div class="page-heading"><div><div class="eyebrow">Your week, at a glance</div><h1>Weekly plan</h1><p class="heading-subtitle">Make a little space for each subject.</p></div><button class="primary-button add-task-button" type="button">${icons.check}<span>Add a task</span></button></div><section class="section-panel"><div class="section-head"><h2 class="section-title">Study schedule</h2><div class="week-switcher"><button class="week-arrow" data-week-shift="-1" type="button" aria-label="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m15 18-6-6 6-6"/></svg></button><span class="week-label">${weekLabel}</span><button class="week-arrow" data-week-shift="1" type="button" aria-label="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 18 6-6-6-6"/></svg></button></div></div><div style="padding:13px"><div class="week-grid">${days.map(day=>{const key=dateKey(day);const dayTasks=tasks.filter(task=>task.date===key).sort((a,b)=>(a.time||'').localeCompare(b.time||''));return `<div class="day-column ${key===todayKey?'is-today':''}" data-day="${key}"><div class="day-header"><div class="day-name">${formatDate(day,{weekday:'short'})}</div><div class="day-number">${String(day.getDate()).padStart(2,'0')}</div></div>${dayTasks.map(task=>`<div class="week-task ${task.done?'done':''}" style="--subject-color:${subjectFor(task.subject).color}" title="${escapeHTML(task.title)}">${escapeHTML(task.title)}</div>`).join('')}<button class="week-add" type="button" data-add-date="${key}">+ Add</button></div>`}).join('')}</div></div></section></section>`;
+      bindAddButtons();
+      main.querySelectorAll('[data-week-shift]').forEach(button=>button.addEventListener('click',()=>{weekOffset+=Number(button.dataset.weekShift);renderWeek();}));
+      main.querySelectorAll('[data-add-date]').forEach(button=>button.addEventListener('click',()=>openTaskDialog(button.dataset.addDate)));
+    }
+    function renderSubjects() {
+      main.innerHTML=`<section class="view-panel"><div class="page-heading"><div><div class="eyebrow">Steady progress, one session at a time</div><h1>Your subjects</h1><p class="heading-subtitle">A little consistency adds up.</p></div><button class="primary-button add-task-button" type="button">${icons.check}<span>Add a task</span></button></div><div class="subject-cards">${subjects.map(subject=>{const summary=subjectSummary(subject);const percent=subject.goal?Math.min(100,Math.round(summary.spent/(subject.goal*60)*100)):0;const next=summary.related.filter(task=>!task.done).sort((a,b)=>a.date.localeCompare(b.date))[0];return `<article class="subject-card"><div class="subject-card-head"><div class="subject-card-title" style="--subject-color:${subject.color}"><span class="subject-dot"></span>${escapeHTML(subject.name)}</div><span class="subject-card-hours">${prettyMinutes(summary.spent)} focused</span></div><div class="subject-card-meta"><span>Weekly focus goal</span><span>${prettyMinutes(summary.spent)} / ${subject.goal}h</span></div><div class="progress-track"><div class="progress-fill" style="--subject-color:${subject.color};width:${percent}%"></div></div><div class="subject-card-next">Up next: <strong>${next?escapeHTML(next.title):'All caught up'}</strong></div></article>`}).join('')}</div></section>`;
+      bindAddButtons();
+    }
+    function renderInsights() {
+      const done=tasks.filter(task=>task.done).length; const total=tasks.length; const rate=total?Math.round(done/total*100):0;
+      const weekStart=startOfWeek(today);
+      const days=Array.from({length:7},(_,index)=>shiftDate(weekStart,index));
+      const values=days.map(day=>completedSessions.filter(session=>session.date===dateKey(day)).reduce((sum,session)=>sum+Number(session.minutes||0),0));
+      const max=Math.max(60,...values);
+      main.innerHTML=`<section class="view-panel"><div class="page-heading"><div><div class="eyebrow">The work you've put in</div><h1>Your progress</h1><p class="heading-subtitle">Every focused minute counts.</p></div></div><div class="insights-grid"><div class="insight-stat"><div class="eyebrow">Total focus time</div><strong>${prettyMinutes(completedMinutes())}</strong></div><div class="insight-stat"><div class="eyebrow">Tasks completed</div><strong>${done}<small style="font:12px var(--sans);color:var(--muted)"> / ${total}</small></strong></div><div class="insight-stat"><div class="eyebrow">Completion rate</div><strong>${rate}%</strong></div></div><section class="chart-panel"><div class="chart-heading"><h2>Focus time this week</h2><span class="chart-legend"><span class="subject-dot"></span>Minutes</span></div><div class="chart" role="img" aria-label="Daily focus minutes this week">${days.map((day,index)=>`<div class="chart-day ${dateKey(day)===todayKey?'today':''}" title="${formatDate(day,{weekday:'long'})}: ${values[index]} minutes"><div class="chart-bar-wrap"><div class="chart-bar" style="height:${Math.max(values[index]?3:0,Math.round(values[index]/max*100))}%"></div></div><span class="chart-day-label">${formatDate(day,{weekday:'short'}).slice(0,2)}</span></div>`).join('')}</div></section></section>`;
+    }
+    function render() {
+      document.querySelectorAll('.nav-link').forEach(link=>link.classList.toggle('active',link.dataset.view===activeView));
+      document.querySelector('#breadcrumb-current').textContent=({today:'Today',week:'Week',subjects:'Subjects',insights:'Insights'})[activeView];
+      document.querySelector('#today-count').textContent=todayTasks().filter(task=>!task.done).length || '';
+      if(activeView==='today') renderToday(); else if(activeView==='week') renderWeek(); else if(activeView==='subjects') renderSubjects(); else renderInsights();
+    }
+    function bindTaskChecks() {
+      main.querySelectorAll('.task-check').forEach(check=>check.addEventListener('change',()=>{const task=tasks.find(item=>item.id===check.dataset.taskId);if(task){task.done=check.checked;save();render();if(task.done)showToast('Task complete. Nice work.');}}));
+    }
+    function bindViewButtons() {
+      main.querySelectorAll('[data-go-view]').forEach(button=>button.addEventListener('click',()=>{activeView=button.dataset.goView;render();}));
+    }
+    function bindAddButtons() { main.querySelectorAll('.add-task-button').forEach(button=>button.addEventListener('click',()=>openTaskDialog(todayKey))); }
+    function openTaskDialog(date=todayKey) {
+      const select=document.querySelector('#task-subject-input');
+      select.innerHTML=subjects.map(subject=>`<option value="${escapeHTML(subject.id)}">${escapeHTML(subject.name)}</option>`).join('');
+      document.querySelector('#task-date-input').value=date;
+      dialog.showModal(); document.querySelector('#task-title-input').focus();
+    }
+    function bindTimer() {
+      const display=document.querySelector('#timer-display'); const toggle=document.querySelector('#timer-toggle'); const caption=document.querySelector('#timer-caption');
+      if(!display || !toggle) return;
+      const update=()=>{display.textContent=`${String(Math.floor(timerRemaining/60)).padStart(2,'0')}:${String(timerRemaining%60).padStart(2,'0')}`;};
+      toggle.addEventListener('click',()=>{
+        if(timerInterval){clearInterval(timerInterval);timerInterval=null;toggle.innerHTML=`${icons.play}<span>Resume focus</span>`;caption.textContent='paused';return;}
+        toggle.innerHTML=`${icons.pause}<span>Pause</span>`;caption.textContent='stay with it';
+        timerInterval=setInterval(()=>{timerRemaining--;update();if(timerRemaining<=0){clearInterval(timerInterval);timerInterval=null;completedSessions.push({date:todayKey,minutes:timerDuration,subject:subjects[0]?.id||null});save();timerDuration=25;timerRemaining=timerDuration*60;showToast('Focus session complete. Take a short break.');render();}},1000);
+      });
+      document.querySelector('#timer-reset').addEventListener('click',()=>{if(timerInterval){clearInterval(timerInterval);timerInterval=null;}timerRemaining=timerDuration*60;toggle.innerHTML=`${icons.play}<span>Start focus</span>`;caption.textContent='minutes of focus';update();});
+      main.querySelectorAll('[data-duration]').forEach(button=>button.addEventListener('click',()=>{if(timerInterval){clearInterval(timerInterval);timerInterval=null;}timerDuration=Number(button.dataset.duration);timerRemaining=timerDuration*60;localStorage.setItem('daymark-timer-duration',JSON.stringify(timerDuration));renderToday();}));
+    }
+    document.querySelectorAll('.nav-link').forEach(link=>link.addEventListener('click',()=>{activeView=link.dataset.view;render();}));
+    document.querySelector('#today-button').addEventListener('click',()=>{weekOffset=0;activeView='today';render();});
+    document.querySelector('.dialog-close').addEventListener('click',()=>dialog.close());
+    dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+    form.addEventListener('submit',event=>{
+      event.preventDefault(); const data=new FormData(form);
+      tasks.push({id:`task-${Date.now()}`,title:String(data.get('title')).trim(),subject:String(data.get('subject')),type:String(data.get('type')),date:String(data.get('date')),minutes:Number(data.get('minutes')),done:false,time:''});
+      save();form.reset();dialog.close();activeView='today';render();showToast('Added to your plan.');
+    });
+    document.querySelector('#top-date').textContent=formatDate(today,{weekday:'short',month:'short',day:'numeric'});
+    render();
+  </script>
+</body>
+</html>
